@@ -15,10 +15,3 @@ def update_margin(conn, opening_id, margin):
     cur = conn.execute("UPDATE openings SET margin=? WHERE id=?", (float(margin), opening_id))
     conn.commit()
     return cur.rowcount
-
-
-def for_room_display(conn, room_id):
-    rows = for_room(conn, room_id)
-    for r in rows:
-        r["gross_deduct"] = float(r.get("w") or 0) * float(r.get("h") or 0)
-    return rows

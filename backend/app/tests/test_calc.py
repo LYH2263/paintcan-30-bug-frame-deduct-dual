@@ -114,7 +114,44 @@ def test_persist_pins_snapshot_and_history_immutable(svc):
     # 旧估算记录净面积不得跟着变
     old_a = next(h for h in svc.history(1000) if h["id"] == run_a["run_id"])
     assert old_a["result"]["net_m2"] == 46.41
+    assert old_a["result"]["openings_m2"] == 3.99
     assert old_a["result"]["openings"][0]["margin"] == 0
+
+
+def test_room_detail_uses_same_inner_deduction_as_estimate(svc):
+    """房间详情/门窗列表的逐洞扣除与合计，必须与估漆回包同为内口口径。"""
+    def expect(margin):
+        est = svc.estimate(1, False)
+        det = svc.room_detail(1)
+        by_id = {o["id"]: o for o in det["openings"]}
+        for eo in est["openings"]:
+            assert by_id[eo["id"]]["deduct_m2"] == eo["deduct_m2"]
+        assert det["openings_m2"] == est["openings_m2"]
+        assert by_id[1]["inner_w"] == round(0.9 - 2 * margin, 3)
+
+    expect(0.0)
+    svc.update_opening_margin(1, 0.05)
+    expect(0.05)
+    # 毛洞积（0.9×2.1=1.89）不得再出现在详情扣除上
+    assert svc.room_detail(1)["openings"][0]["deduct_m2"] == 1.6
+
+
+def test_history_opened_by_id_is_snapshot_only(svc):
+    """历史按编号打开只回填钉选时的固化 JSON，不引用当前洞口、不被改留边带跑。"""
+    run = svc.estimate(1, True)
+    pinned_before = next(h for h in svc.history(1000) if h["id"] == run["run_id"])
+    # 改留边并再估，产生一份新口径的记录
+    svc.update_opening_margin(1, 0.05)
+    run2 = svc.estimate(1, True)
+    old = next(h for h in svc.history(1000) if h["id"] == run["run_id"])
+    new = next(h for h in svc.history(1000) if h["id"] == run2["run_id"])
+    assert old["result"] == pinned_before["result"]
+    assert old["result"]["net_m2"] == 46.41
+    assert old["result"]["openings_m2"] == 3.99
+    assert new["result"]["net_m2"] == 46.7
+    # 输入快照里的留边同样固化在各自记录上
+    assert old["input"]["openings"][0]["margin"] == 0.0
+    assert new["input"]["openings"][0]["margin"] == 0.05
 
 
 def test_invalid_estimate_rejected_without_record(svc):

@@ -63,13 +63,3 @@ def wall_area(length: float, width: float, height: float, openings: list[dict]) 
         "net_m2": round(net, 2),
         "openings": [round_detail(d) for d in raw],
     }
-
-
-def gross_opening(w, h, margin=0.0, opening_id=None, kind=None) -> dict:
-    """Detail companion: deduct by outer w*h while estimate still uses inner."""
-    base = inner_opening(w, h, margin, opening_id, kind)
-    return {
-        **base,
-        "gross_deduct_m2": float(w) * float(h),
-        "display_deduct_m2": float(w) * float(h),
-    }

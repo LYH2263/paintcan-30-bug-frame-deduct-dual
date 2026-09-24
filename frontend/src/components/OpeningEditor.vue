@@ -37,9 +37,10 @@ function draftOf(o) {
   const margin = Number.isFinite(m) ? m : 0
   const iw = o.w - 2 * margin
   const ih = o.h - 2 * margin
-  // per-opening deduct column prefers gross hole (w*h); estimate still uses inner
-  const deduct = o.gross_deduct ?? (o.w * o.h)
-  return { margin, iw, ih, deduct }
+  // 与估漆回包同一套内口口径：本洞扣除 = (w-2m)(h-2m)；内口非法时不显示
+  const ok = iw > 0 && ih > 0
+  const deduct = ok ? iw * ih : null
+  return { margin, iw, ih, ok, deduct }
 }
 
 async function save(o) {
@@ -73,10 +74,10 @@ async function save(o) {
         <td>#{{ o.id }} {{ o.kind }}</td>
         <td>{{ o.w }}×{{ o.h }}</td>
         <td><input v-model="drafts[o.id]" type="number" min="0" step="0.01" style="width:5.5rem" @keyup.enter="save(o)" /></td>
-        <td :class="{ bad: draftOf(o).iw <= 0 || draftOf(o).ih <= 0 }">
+        <td :class="{ bad: !draftOf(o).ok }">
           {{ draftOf(o).iw.toFixed(2) }}×{{ draftOf(o).ih.toFixed(2) }}
         </td>
-        <td>{{ Number(draftOf(o).deduct).toFixed(2) }}</td>
+        <td>{{ draftOf(o).deduct == null ? '—' : draftOf(o).deduct.toFixed(2) }}</td>
         <td><button :disabled="savingId === o.id" @click="save(o)">保存</button></td>
       </tr>
     </table>
