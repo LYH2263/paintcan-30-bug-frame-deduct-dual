@@ -15,8 +15,9 @@ class PaintService:
     def room_detail(self, rid):
         r = rooms.get(self._c, rid)
         if not r: return None
-        from app.services.opening_display import detail_with_gross
-        return detail_with_gross({"room": r, "openings": openings.for_room(self._c, rid)})
+        from app.services.opening_display import detail_with_inner
+        # 详情扣除与估漆回包同一套内口径；非法洞标记 invalid 但不阻断详情打开
+        return detail_with_inner({"room": r, "openings": openings.for_room(self._c, rid)})
 
     def settings(self): return settings.get_map(self._c)
 

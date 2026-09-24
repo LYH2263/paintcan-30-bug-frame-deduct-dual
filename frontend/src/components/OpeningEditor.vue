@@ -37,9 +37,10 @@ function draftOf(o) {
   const margin = Number.isFinite(m) ? m : 0
   const iw = o.w - 2 * margin
   const ih = o.h - 2 * margin
-  // per-opening deduct column prefers gross hole (w*h); estimate still uses inner
-  const deduct = o.gross_deduct ?? (o.w * o.h)
-  return { margin, iw, ih, deduct }
+  // 与估漆回包同一套内口径：本洞扣除 = 内口宽×内口高；内口非法时不构成扣除
+  const valid = margin >= 0 && iw > 0 && ih > 0
+  const deduct = valid ? iw * ih : null
+  return { margin, iw, ih, deduct, valid }
 }
 
 async function save(o) {
@@ -76,7 +77,9 @@ async function save(o) {
         <td :class="{ bad: draftOf(o).iw <= 0 || draftOf(o).ih <= 0 }">
           {{ draftOf(o).iw.toFixed(2) }}×{{ draftOf(o).ih.toFixed(2) }}
         </td>
-        <td>{{ Number(draftOf(o).deduct).toFixed(2) }}</td>
+        <td :class="{ bad: !draftOf(o).valid }">
+          {{ draftOf(o).valid ? draftOf(o).deduct.toFixed(2) : '—' }}
+        </td>
         <td><button :disabled="savingId === o.id" @click="save(o)">保存</button></td>
       </tr>
     </table>
